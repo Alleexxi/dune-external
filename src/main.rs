@@ -1,10 +1,15 @@
+#![feature(proc_macro_hygiene)]
+
 use libc::exit;
 #[allow(non_camel_case_types)]
 #[allow(nonstandard_style)]
 use std::fs::File;
 
+#[flamer::flame]
 mod app;
+#[flamer::flame]
 mod ui;
+#[flamer::flame]
 mod unreal;
 
 fn main() {

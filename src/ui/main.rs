@@ -6,9 +6,17 @@ use crate::{
         global::get_process,
         offsets::{LOCALPLAYERS, OWNING_GAME_INSTANCE, PLAYER_CONTROLLER_OFFSET},
         screen::world2screen,
-        types::structs::{FMinimalViewInfo, FName, FVector, TArray},
+        types::structs::{FMinimalViewInfo, FName, FVector, TArray, UObject},
     },
 };
+
+/// Class
+/// BP_DunePlayerCharacter_C = Player
+/// BP_StorageContainer_C = Storage
+/// BP_Totem_C = Subfief
+/// Solider = Npc
+/// BP_<Class>Ornithopter = Heli
+///
 
 impl app::App {
     pub fn draw_main_ui(&mut self, egui_context: &egui::Context) {
@@ -38,24 +46,43 @@ impl app::App {
         //
         //    painter.circle(screen_pos.to_egui(), 5.0, Color32::DARK_GRAY, Stroke::NONE);
         //}
+
+        let whitelisted_actors = vec!["BP_DunePlayerCharacter_C"];
+
         for actor in self.actors.iter() {
             if actor == &0 {
                 continue;
             }
 
-            let actor_name: String = proc.read::<FName>(actor + 0x18).unwrap().to_string();
+            let actor_uobject: UObject = proc.read::<UObject>(actor.clone()).unwrap();
 
+            let actor_name = actor_uobject.get_name();
+            //if !whitelisted_actors.contains(&actor_name.as_str()) {
+            //    continue;
+            //}
             let pawn_root: usize = proc.read(actor + 0x240).unwrap();
             if pawn_root == 0 {
                 continue;
             };
             let pawn_location: FVector = proc.read(pawn_root + 0x1b8).unwrap();
 
+            let loc_delta = pawn_location.distance(min_view_info.location);
+            if loc_delta > 5000.0 {
+                continue;
+            }
+
             let screen_pos = world2screen(pawn_location, min_view_info);
             if screen_pos.x == 0.0 && screen_pos.y == 0.0 {
                 continue;
             }
-            painter.circle(screen_pos.to_egui(), 5.0, Color32::DARK_GRAY, Stroke::NONE);
+            painter.text(
+                screen_pos.to_egui(),
+                egui::Align2::CENTER_CENTER,
+                format!("{} : {}", actor_name, actor_uobject.index),
+                egui::FontId::default(),
+                Color32::WHITE,
+            );
+            //painter.circle(screen_pos.to_egui(), 5.0, Color32::DARK_GRAY, Stroke::NONE);
         }
     }
 }

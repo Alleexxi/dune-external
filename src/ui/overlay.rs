@@ -142,7 +142,7 @@ impl EguiOverlay for App {
         egui_context.request_repaint();
 
         self.frames = self.frames + 1;
-        if self.frames == 400 {
+        if self.frames == 10 {
             flame::dump_html(&mut File::create("flame-graph.html").unwrap()).unwrap();
         }
     }

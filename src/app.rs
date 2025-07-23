@@ -1,11 +1,11 @@
-use std::default;
+use std::{default, slice::SliceIndex};
 
 use memflex::external::OwnedProcess;
 use sysinfo::System;
 
 use crate::unreal::{
     global::{set_gnames, set_process},
-    offsets::{GNAMES, UWORLD},
+    offsets::{GNAMES, GOBJECTS, UWORLD},
     update_gobjects,
 };
 
