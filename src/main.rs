@@ -1,10 +1,11 @@
 #![feature(proc_macro_hygiene)]
 
+#[flamer::flame]
+extern crate memflex;
+
 use libc::exit;
 #[allow(non_camel_case_types)]
 #[allow(nonstandard_style)]
-use std::fs::File;
-
 #[flamer::flame]
 mod app;
 #[flamer::flame]

@@ -17,21 +17,21 @@ pub struct FName {
 
 impl FName {
     #[flamer::flame]
-    pub fn to_string(&self) -> String {
+    pub fn to_str(&self) -> &str {
         let index = self.comparison_index as usize;
-        let mut cache = STRING_CACHE.lock().unwrap();
 
-        if index >= cache.len() {
-            cache.resize_with(index + 1, || None);
-        }
-
-        match &cache[index] {
-            Some(s) => return s.clone(),
-            _ => (),
+        // Try to get cached value with minimal lock time
+        {
+            let cache = STRING_CACHE.lock().unwrap();
+            if index < cache.len() {
+                if let Some(ref s) = cache[index] {
+                    return s;
+                }
+            }
         }
 
         if self.comparison_index == 0 {
-            return "None".to_string();
+            return "None";
         }
 
         let proc = get_process();
@@ -45,18 +45,18 @@ impl FName {
 
         let name_pool_chunk_ptr = match proc.read::<u64>(chunk_ptr_address) {
             Ok(ptr) if ptr != 0 => ptr as usize,
-            _ => return "None".to_string(),
+            _ => return "None",
         };
 
         let name_pool_chunk = name_pool_chunk_ptr + 2 * name_offset as usize;
         let name_length_raw = match proc.read::<u16>(name_pool_chunk) {
             Ok(len) if len != 0 => len,
-            _ => return "None".to_string(),
+            _ => return "None",
         };
 
         let name_length = (name_length_raw >> 6) as usize;
         if name_length == 0 {
-            return "None".to_string();
+            return "None";
         }
 
         let safe_length = name_length.min(NAME_SIZE);
@@ -64,18 +64,32 @@ impl FName {
 
         // If read_buf fails, return "None"
         if proc.read_buf(name_pool_chunk + 2, &mut name_bytes).is_err() {
-            return "None".to_string();
+            return "None";
         }
 
-        let name_string = String::from_utf8_lossy(&name_bytes)
-            .trim_end_matches('\0')
-            .to_string();
+        let name_str = match std::str::from_utf8(&name_bytes) {
+            Ok(s) => s.trim_end_matches('\0'),
+            Err(_) => return "None",
+        };
 
-        if name_string.is_empty() || name_string == "None".to_string() {
-            "None".to_string()
+        let result = if name_str.is_empty() || name_str == "None" {
+            "None".to_owned()
         } else {
-            cache[index] = Some(name_string.clone());
-            name_string
+            name_str.to_owned()
+        };
+
+        // Cache the result as an owned String and return a reference to a static "None" or leak the String for a static reference
+        if result == "None" {
+            return "None";
+        } else {
+            // Leak the String to get a &'static str
+            let static_str: &'static str = Box::leak(result.into_boxed_str());
+            let mut cache = STRING_CACHE.lock().unwrap();
+            if index >= cache.len() {
+                cache.resize_with(index + 1, || None);
+            }
+            cache[index] = Some(static_str);
+            static_str
         }
     }
 }
@@ -224,8 +238,8 @@ pub struct UObject {
 }
 
 impl UObject {
-    pub fn get_name(&self) -> String {
-        self.name.to_string()
+    pub fn get_name(&self) -> &str {
+        self.name.to_str()
     }
 
     pub fn get_fullname(&self) -> String {

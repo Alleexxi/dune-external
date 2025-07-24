@@ -1,6 +1,6 @@
-pub static UWORLD: usize = 0xbca8be0;
-pub static GNAMES: usize = 0xBD58600;
-pub static GOBJECTS: usize = 0xbe23920;
+pub static UWORLD: usize = 0xBCB2CE0;
+pub static GNAMES: usize = 0xbd62700;
+pub static GOBJECTS: usize = 0xbe2da20;
 
 pub static OWNING_GAME_INSTANCE: usize = 0x330;
 pub static LOCALPLAYERS: usize = 0x40;

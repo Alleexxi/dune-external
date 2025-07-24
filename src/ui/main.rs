@@ -25,7 +25,7 @@ impl app::App {
             ui.label(format!("current frame number: {}", 0));
         });
     }
-    #[flamer::flame]
+
     pub fn draw_esp_test(&mut self, painter: Painter) {
         let proc = get_process();
 
@@ -48,22 +48,24 @@ impl app::App {
         //}
 
         let whitelisted_actors = vec!["BP_DunePlayerCharacter_C"];
-
         for actor in self.actors.iter() {
             if actor == &0 {
-                continue;
+                return;
             }
 
             let actor_uobject: UObject = proc.read::<UObject>(actor.clone()).unwrap();
 
             let actor_name = actor_uobject.get_name();
-            //if !whitelisted_actors.contains(&actor_name.as_str()) {
+
+            //if !whitelisted_actors.contains(&actor_name) {
             //    continue;
             //}
+
             let pawn_root: usize = proc.read(actor + 0x240).unwrap();
             if pawn_root == 0 {
                 continue;
             };
+
             let pawn_location: FVector = proc.read(pawn_root + 0x1b8).unwrap();
 
             let loc_delta = pawn_location.distance(min_view_info.location);
@@ -75,6 +77,7 @@ impl app::App {
             if screen_pos.x == 0.0 && screen_pos.y == 0.0 {
                 continue;
             }
+
             painter.text(
                 screen_pos.to_egui(),
                 egui::Align2::CENTER_CENTER,
@@ -82,7 +85,6 @@ impl app::App {
                 egui::FontId::default(),
                 Color32::WHITE,
             );
-            //painter.circle(screen_pos.to_egui(), 5.0, Color32::DARK_GRAY, Stroke::NONE);
         }
     }
 }

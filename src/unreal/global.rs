@@ -1,3 +1,4 @@
+use flamer::flame;
 use memflex::external::OwnedProcess;
 use once_cell::sync::{Lazy, OnceCell};
 use std::{cell::RefCell, sync::Mutex};
@@ -10,6 +11,7 @@ pub fn set_process(proc: OwnedProcess) {
     GLOBAL_PROCESS.set(proc).unwrap();
 }
 
+#[flame]
 pub fn get_process() -> &'static OwnedProcess {
     GLOBAL_PROCESS.get().expect("OwningProcess not set")
 }
@@ -20,6 +22,7 @@ pub fn set_gnames(proc: usize) {
     GLOBAL_GNAMES.set(proc).unwrap();
 }
 
+#[flame]
 pub fn get_gnames() -> &'static usize {
     GLOBAL_GNAMES.get().expect("GLOBAL_GNAMES not set")
 }
@@ -54,4 +57,5 @@ pub fn get_gobjects() -> Vec<FUObjectItem> {
         .clone() // Clone the Vec so we don't hold the lock
 }
 
-pub static STRING_CACHE: Lazy<Mutex<Vec<Option<String>>>> = Lazy::new(|| Mutex::new(Vec::new()));
+pub static STRING_CACHE: Lazy<Mutex<Vec<Option<&'static str>>>> =
+    Lazy::new(|| Mutex::new(Vec::new()));

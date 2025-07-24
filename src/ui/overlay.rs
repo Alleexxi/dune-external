@@ -16,7 +16,6 @@ use crate::{
 };
 
 impl EguiOverlay for App {
-    #[flamer::flame]
     fn gui_run(
         &mut self,
         egui_context: &egui::Context,
@@ -81,7 +80,6 @@ impl EguiOverlay for App {
         //}
         //
         //self.actors = actors_array;
-
         let game_instance_address = self
             .process
             .read::<usize>(self.uworld + OWNING_GAME_INSTANCE)
@@ -106,7 +104,7 @@ impl EguiOverlay for App {
             .read(player_controller_address + 0x3f8)
             .unwrap();
 
-        println!("Localplayer Name {}", player_pawn.index);
+        // println!("Localplayer Name {}", player_pawn.index);
 
         self.playercam = player_camera_manager;
 
@@ -142,8 +140,5 @@ impl EguiOverlay for App {
         egui_context.request_repaint();
 
         self.frames = self.frames + 1;
-        if self.frames == 10 {
-            flame::dump_html(&mut File::create("flame-graph.html").unwrap()).unwrap();
-        }
     }
 }
