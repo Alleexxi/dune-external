@@ -46,7 +46,6 @@ impl PartialEq for Vector2 {
     }
 }
 
-#[flamer::flame]
 pub fn world2screen(position: FVector, pov: FMinimalViewInfo) -> Vector2 {
     let view_matrix = pov.rotation.to_matrix();
 

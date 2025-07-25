@@ -1,4 +1,3 @@
-use flamer::flame;
 use memflex::external::OwnedProcess;
 use once_cell::sync::{Lazy, OnceCell};
 use std::{cell::RefCell, sync::Mutex};
@@ -11,7 +10,6 @@ pub fn set_process(proc: OwnedProcess) {
     GLOBAL_PROCESS.set(proc).unwrap();
 }
 
-#[flame]
 pub fn get_process() -> &'static OwnedProcess {
     GLOBAL_PROCESS.get().expect("OwningProcess not set")
 }
@@ -22,7 +20,6 @@ pub fn set_gnames(proc: usize) {
     GLOBAL_GNAMES.set(proc).unwrap();
 }
 
-#[flame]
 pub fn get_gnames() -> &'static usize {
     GLOBAL_GNAMES.get().expect("GLOBAL_GNAMES not set")
 }

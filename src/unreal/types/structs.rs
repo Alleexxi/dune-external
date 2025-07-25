@@ -1,5 +1,4 @@
 use memflex::external::OwnedProcess;
-use offsetter::offset_debug;
 
 use crate::unreal::global::STRING_CACHE;
 use crate::unreal::global::get_gnames;
@@ -7,8 +6,6 @@ use crate::unreal::global::get_process;
 use crate::unreal::types::enums::{EClassCastFlags, EClassFlags, EObjectFlags, EPropertyFlags};
 
 // Unreal Engine 5....
-// #[flamer::flame]
-#[flamer::flame]
 #[derive(Debug, Clone, Copy)]
 pub struct FName {
     pub comparison_index: u32,
@@ -16,7 +13,6 @@ pub struct FName {
 }
 
 impl FName {
-    #[flamer::flame]
     pub fn to_str(&self) -> &str {
         let index = self.comparison_index as usize;
 
@@ -151,7 +147,6 @@ impl<T: Copy + 'static> TArray<T> {
         let element_address = self.data + (index as usize * element_size);
         Ok(proc.read::<U>(element_address)?)
     }
-    #[flamer::flame]
     pub fn read_all<U>(&self) -> Result<Vec<U>, Box<dyn std::error::Error>>
     where
         U: Copy + 'static,
@@ -264,13 +259,6 @@ impl UObject {
     }
 }
 
-offset_debug! {
-    pub struct AActor {
-        0x18 pub name: FName,
-        0x240 pub root: usize,
-    }
-}
-
 // Implement GetName and so on...
 
 // Impl FProperty
@@ -365,7 +353,11 @@ impl FVector {
     pub fn distance(self, other: FVector) -> f64 {
         (self - other).magnitude()
     }
-    #[flamer::flame]
+
+    pub fn distance_meter(self, other: FVector) -> f64 {
+        self.distance(other) / 100.0
+    }
+
     pub fn dot(&self, other: &FVector) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
@@ -386,7 +378,6 @@ impl FVector {
             z: self.z / mag,
         }
     }
-    #[flamer::flame]
     // Add to_matrix
     pub fn to_matrix(&self) -> [[f64; 4]; 4] {
         // Skidded.
@@ -531,5 +522,44 @@ impl<K: Copy + 'static, V: Copy + 'static> TMap<K, V> {
             let pair = el.value;
             func(i, pair.key, pair.value);
         })
+    }
+}
+
+// FString
+#[derive(Debug, Clone, Copy)]
+#[repr(C)]
+pub struct FString {
+    pub data: usize, // *const u16 (wchar_t)
+    pub count: i32,
+    pub max: i32,
+}
+
+impl FString {
+    pub fn is_valid(&self) -> bool {
+        self.data != 0
+    }
+
+    pub fn as_ptr(&self) -> *const u16 {
+        self.data as *const u16
+    }
+    pub fn to_str(&self) -> &str {
+        if !self.is_valid() || self.count <= 0 {
+            return "";
+        }
+        let proc = get_process();
+        let len = self.count as usize;
+        let mut buffer = vec![0u16; len];
+        if proc
+            .read_buf(self.data, unsafe {
+                std::slice::from_raw_parts_mut(buffer.as_mut_ptr() as *mut u8, len * 2)
+            })
+            .is_err()
+        {
+            return "";
+        }
+        match String::from_utf16(&buffer) {
+            Ok(s) => Box::leak(s.into_boxed_str()),
+            Err(_) => "",
+        }
     }
 }

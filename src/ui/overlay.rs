@@ -1,15 +1,17 @@
 use std::fs::File;
 
 use egui::{Color32, LayerId, Pos2, Rect, Vec2};
+use egui_keybind::Bind;
 use egui_overlay::EguiOverlay;
-use egui_render_three_d::ThreeDBackend;
+use egui_render_three_d::{ThreeDBackend, three_d::context};
 
 use crate::{
     app::App,
     unreal::{
         global::STRING_CACHE,
         offsets::{
-            LOCALPLAYERS, OWNING_GAME_INSTANCE, PLAYER_CAMERA_MANAGER, PLAYER_CONTROLLER_OFFSET,
+            LOCALPLAYERS, OWNING_GAME_INSTANCE, PLAYER_CAMERA_MANAGER, PLAYER_CHARACTER,
+            PLAYER_CONTROLLER_OFFSET,
         },
         types::structs::{FName, TArray, UObject},
     },
@@ -52,93 +54,102 @@ impl EguiOverlay for App {
             egui_context.set_visuals(visuals);
         }
 
+        if self.visible {
+            self.draw_main_ui(egui_context);
+        }
+
         // Set Addresses
+
         let gamestate: usize = self.process.read(self.uworld + 0x2c8).unwrap();
         self.gamestate = gamestate;
 
         let persistant_level: usize = self.process.read(self.uworld + 0x38).unwrap();
+        if persistant_level == 0 {
+            return;
+        }
         let actors_array: TArray<usize> = self.process.read(persistant_level + 0xA0).unwrap();
+        if actors_array.is_empty() {
+            return;
+        }
         let actors = actors_array.read_all::<usize>().unwrap();
+        if actors.is_empty() {
+            return;
+        }
 
         self.actors = actors;
 
-        //let ulevels: TArray<usize> = self.process.read(self.uworld + 0x2e8).unwrap();
-        //let levels = ulevels.read_all::<usize>().unwrap();
-
-        //let mut actors_array: Vec<usize> = Vec::new();
-        //for level in levels {
-        //    let actor_cluster: usize = self.process.read(level + 0xe0).unwrap();
-        //    println!("actor_cluster {:X}", actor_cluster);
-        //    if actor_cluster == 0 {
-        //        continue;
-        //    }
-        //    let actors: TArray<usize> = self.process.read(actor_cluster + 0x30).unwrap();
-        //    let all_actors = actors.read_all::<usize>().unwrap();
-        //    // push all actors to actors_array
-        //    actors_array.extend(all_actors);
-        //    println!("{:?}", actors);
-        //}
-        //
-        //self.actors = actors_array;
-        let game_instance_address = self
+        let game_instance_address = match self
             .process
             .read::<usize>(self.uworld + OWNING_GAME_INSTANCE)
-            .expect("IDK");
+        {
+            Ok(addr) => addr,
+            Err(_) => return,
+        };
 
-        let localplayers_address = self
+        let localplayers_address = match self
             .process
             .read::<usize>(game_instance_address + LOCALPLAYERS)
-            .unwrap();
-        let localplayer_address: usize = self.process.read(localplayers_address).unwrap();
-        let player_controller_address = self
+        {
+            Ok(addr) => addr,
+            Err(_) => return,
+        };
+
+        let localplayer_address: usize = match self.process.read(localplayers_address) {
+            Ok(addr) => addr,
+            Err(_) => return,
+        };
+
+        let player_controller_address = match self
             .process
             .read::<usize>(localplayer_address + PLAYER_CONTROLLER_OFFSET)
-            .unwrap();
-        let player_camera_manager = self
+        {
+            Ok(addr) => addr,
+            Err(_) => return,
+        };
+
+        let player_camera_manager = match self
             .process
             .read::<usize>(player_controller_address + PLAYER_CAMERA_MANAGER)
-            .unwrap();
-
-        let player_pawn: UObject = self
-            .process
-            .read(player_controller_address + 0x3f8)
-            .unwrap();
-
-        // println!("Localplayer Name {}", player_pawn.index);
+        {
+            Ok(addr) => addr,
+            Err(_) => return,
+        };
 
         self.playercam = player_camera_manager;
 
-        // Actual UI Drawing
-        self.draw_main_ui(egui_context);
+        self.change_weapon_damage();
 
         // Create Debug printer
-        let painter = egui::Painter::new(
-            egui_context.clone(),
-            LayerId::debug(),
-            Rect {
-                min: Pos2 { x: 0.0, y: 0.0 },
-                max: Pos2 {
-                    x: 1920.0,
-                    y: 1080.0,
+        if self.esp_enabled {
+            let painter = egui::Painter::new(
+                egui_context.clone(),
+                LayerId::debug(),
+                Rect {
+                    min: Pos2 { x: 0.0, y: 0.0 },
+                    max: Pos2 {
+                        x: 1920.0,
+                        y: 1080.0,
+                    },
                 },
-            },
-        );
+            );
 
-        self.draw_esp_test(painter);
-
+            self.draw_player_esp(painter.clone());
+            self.draw_esp_test(painter.clone());
+        }
         // Input Handling
         if egui_context.wants_pointer_input() || egui_context.wants_keyboard_input() {
             glfw_backend.set_passthrough(false);
         } else {
             glfw_backend.set_passthrough(true)
         }
+        if egui_context.input_mut(|i| self.open_key.pressed(i)) {
+            self.visible = !self.visible;
+        }
 
         let end = std::time::Instant::now();
         let duration = end.duration_since(start);
         println!("Drawing UI took: {:?}", duration);
-
+        self.frames = duration.as_millis() as f32;
         egui_context.request_repaint();
-
-        self.frames = self.frames + 1;
     }
 }

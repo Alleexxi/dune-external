@@ -1,5 +1,6 @@
 use std::{default, slice::SliceIndex};
 
+use egui_keybind::Shortcut;
 use memflex::external::OwnedProcess;
 use sysinfo::System;
 
@@ -31,7 +32,6 @@ fn return_pid() -> u32 {
 
     return target_process_id;
 }
-#[flamer::flame]
 #[derive(Debug)]
 pub struct App {
     pub init: bool,
@@ -47,7 +47,21 @@ pub struct App {
     pub persistantlevel: usize,
     pub actors: Vec<usize>,
 
-    pub frames: u32,
+    pub frames: f32,
+
+    // Config stuff:
+    pub visible: bool,
+    pub esp_enabled: bool,
+    pub tracers_enabled: bool,
+    pub only_player_esp: bool,
+
+    pub npc_esp: bool,
+    pub spice_esp: bool,
+
+    pub weapon_damage_enabled: bool,
+    pub weapon_damage: f32,
+
+    pub open_key: Shortcut,
 }
 
 impl App {
@@ -71,6 +85,11 @@ impl App {
 
         let _ = update_gobjects();
 
+        let shortcut = Some(egui::KeyboardShortcut::new(
+            egui::Modifiers::NONE,
+            egui::Key::F1,
+        ));
+
         Self {
             pid: process_id,
             init: false,
@@ -83,7 +102,22 @@ impl App {
             persistantlevel: 0x0,
 
             actors: Vec::default(),
-            frames: 0,
+            frames: 0.0,
+
+            // Config stuff:
+            visible: true,
+
+            esp_enabled: false,
+            only_player_esp: false,
+
+            npc_esp: false,
+            spice_esp: false,
+
+            tracers_enabled: false,
+            weapon_damage_enabled: false,
+            weapon_damage: 250.0,
+
+            open_key: Shortcut::new(shortcut, None),
         }
     }
 }

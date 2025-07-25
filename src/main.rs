@@ -1,16 +1,11 @@
 #![feature(proc_macro_hygiene)]
 
-#[flamer::flame]
-extern crate memflex;
-
+use fastcontains::fastcontains;
 use libc::exit;
 #[allow(non_camel_case_types)]
 #[allow(nonstandard_style)]
-#[flamer::flame]
 mod app;
-#[flamer::flame]
 mod ui;
-#[flamer::flame]
 mod unreal;
 
 fn main() {
@@ -24,8 +19,8 @@ fn main() {
     if let Ok(mounts) = std::fs::read_to_string("/proc/mounts") {
         let mut found = false;
         for line in mounts.lines() {
-            if line.contains(" /proc ") {
-                if line.contains("hidepid=invisible") {
+            if line.fast_contains(" /proc ") {
+                if line.fast_contains("hidepid=invisible") {
                     found = true;
                     break;
                 }
